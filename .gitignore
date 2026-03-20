@@ -1,0 +1,27 @@
+# 环境变量（绝对不能提交！）
+.env
+.env.local
+.env.*.local
+
+# 测试文件
+.env.test
+
+# 备份文件（可能包含敏感数据）
+backups/
+*.tar.gz
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# 日志
+*.log
+logs/
+
+# 临时文件
+tmp/
+.tmp/
