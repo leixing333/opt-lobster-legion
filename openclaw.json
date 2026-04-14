@@ -1,0 +1,163 @@
+{
+  "$schema": "https://docs.openclaw.ai/schemas/openclaw.json",
+  "_version": "3.0.0",
+  "_comment": "OPT 龙虾军团 v3.0 主配置文件 — 基于 Claude Code 工业级架构范式",
+  "_upgrade": "拷贝此目录到 ~/.openclaw/ 即可完成升级",
+
+  "agents": {
+    "defaults": {
+      "workspace": "~/.openclaw/workspace",
+      "compaction": {
+        "reserveTokensFloor": 20000,
+        "memoryFlush": {
+          "enabled": true,
+          "softThresholdTokens": 4000
+        }
+      },
+      "memorySearch": {
+        "provider": "openai",
+        "remote": {
+          "model": "text-embedding-3-small"
+        }
+      },
+      "taorEngine": {
+        "enabled": true,
+        "maxRetries": 3,
+        "failClosed": true
+      }
+    },
+    "list": [
+      {
+        "id": "cos",
+        "name": "CoS 幕僚长",
+        "workspace": "~/.openclaw/workspace/cos",
+        "agentDir": "~/.openclaw/agents/cos",
+        "default": true,
+        "model": { "provider": "anthropic", "model": "claude-sonnet-4-5" },
+        "disallowedTools": ["bash", "file_write", "file_edit"]
+      },
+      {
+        "id": "cto",
+        "name": "CTO 技术合伙人",
+        "workspace": "~/.openclaw/workspace/cto",
+        "agentDir": "~/.openclaw/agents/cto",
+        "model": { "provider": "anthropic", "model": "claude-sonnet-4-5" },
+        "disallowedTools": ["bash", "file_write", "file_edit"]
+      },
+      {
+        "id": "builder",
+        "name": "Builder 全栈执行者",
+        "workspace": "~/.openclaw/workspace/builder",
+        "agentDir": "~/.openclaw/agents/builder",
+        "model": { "provider": "openai", "model": "gpt-4.1-mini" },
+        "skills": ["opt-taor-engine", "opt-web-publisher", "opt-design-system"]
+      },
+      {
+        "id": "researcher",
+        "name": "Researcher 市场情报官",
+        "workspace": "~/.openclaw/workspace/researcher",
+        "agentDir": "~/.openclaw/agents/researcher",
+        "model": { "provider": "google", "model": "gemini-2.5-flash" },
+        "disallowedTools": ["file_write", "file_edit", "bash"],
+        "skills": ["opt-taor-engine"]
+      },
+      {
+        "id": "ko",
+        "name": "KO 知识管理员",
+        "workspace": "~/.openclaw/workspace/ko",
+        "agentDir": "~/.openclaw/agents/ko",
+        "model": { "provider": "openai", "model": "gpt-4.1-nano" },
+        "skills": ["opt-autodream-memory", "opt-rag-knowledge"],
+        "schedule": {
+          "autodream": "0 2 * * *"
+        }
+      },
+      {
+        "id": "ops",
+        "name": "Ops 运维审计员",
+        "workspace": "~/.openclaw/workspace/ops",
+        "agentDir": "~/.openclaw/agents/ops",
+        "model": { "provider": "openai", "model": "gpt-4.1-mini" },
+        "disallowedTools": ["file_edit"],
+        "skills": ["opt-security-audit", "opt-auto-backup"],
+        "schedule": {
+          "backup": "0 3 * * *",
+          "audit": "0 9 * * 1"
+        }
+      }
+    ]
+  },
+
+  "models": {
+    "providers": {
+      "openai": { "apiKey": "${OPENAI_API_KEY}" },
+      "anthropic": { "apiKey": "${ANTHROPIC_API_KEY}" },
+      "google": { "apiKey": "${GEMINI_API_KEY}" }
+    }
+  },
+
+  "channels": {
+    "slack": {
+      "dmPolicy": "allowlist",
+      "allowFrom": ["${SLACK_OWNER_USER_ID}"],
+      "accounts": {
+        "default": {
+          "token": "${SLACK_BOT_TOKEN}",
+          "appToken": "${SLACK_APP_TOKEN}"
+        }
+      }
+    },
+    "feishu": {
+      "appId": "${FEISHU_APP_ID}",
+      "appSecret": "${FEISHU_APP_SECRET}"
+    }
+  },
+
+  "bindings": [
+    { "agentId": "cos",        "match": { "channel": "slack", "peer": { "kind": "channel", "id": "${SLACK_CHANNEL_HQ}" } } },
+    { "agentId": "cto",        "match": { "channel": "slack", "peer": { "kind": "channel", "id": "${SLACK_CHANNEL_CTO}" } } },
+    { "agentId": "builder",    "match": { "channel": "slack", "peer": { "kind": "channel", "id": "${SLACK_CHANNEL_BUILD}" } } },
+    { "agentId": "researcher", "match": { "channel": "slack", "peer": { "kind": "channel", "id": "${SLACK_CHANNEL_RESEARCH}" } } },
+    { "agentId": "ko",         "match": { "channel": "slack", "peer": { "kind": "channel", "id": "${SLACK_CHANNEL_KNOW}" } } },
+    { "agentId": "ops",        "match": { "channel": "slack", "peer": { "kind": "channel", "id": "${SLACK_CHANNEL_OPS}" } } }
+  ],
+
+  "agentToAgent": {
+    "allow": true,
+    "maxPingPongTurns": 10,
+    "requireVisibleAnchor": true
+  },
+
+  "skills": {
+    "load": {
+      "extraDirs": ["~/.openclaw/skills"],
+      "watch": true
+    }
+  },
+
+  "memory": {
+    "layers": {
+      "l1": { "path": "~/.openclaw/workspace/{agentId}/memory", "retention": "30d" },
+      "l2": { "path": "~/.openclaw/knowledge-base", "vectorize": true }
+    }
+  },
+
+  "security": {
+    "dmPolicy": "pairing",
+    "failClosed": true,
+    "sandboxing": {
+      "enabled": true,
+      "workspaceAccess": "rw",
+      "allowAbsolutePaths": false
+    },
+    "audit": {
+      "enabled": true,
+      "logPath": "~/.openclaw/logs/audit.log"
+    }
+  },
+
+  "server": {
+    "port": 18789,
+    "host": "0.0.0.0"
+  }
+}

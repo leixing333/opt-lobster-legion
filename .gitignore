@@ -1,0 +1,21 @@
+# 敏感文件（绝对不能提交）
+.env
+*.env.local
+*.env.production
+
+# 工作区记忆（本地私有）
+workspace/*/memory/
+
+# 备份文件
+backups/
+*.tar.gz
+*.zip
+
+# 日志文件
+logs/
+*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
+node_modules/
