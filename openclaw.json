@@ -1,88 +1,153 @@
 {
   "$schema": "https://docs.openclaw.ai/schemas/openclaw.json",
-  "_version": "3.0.0",
-  "_comment": "OPT 龙虾军团 v3.0 主配置文件 — 基于 Claude Code 工业级架构范式",
-  "_upgrade": "拷贝此目录到 ~/.openclaw/ 即可完成升级",
+  "_version": "4.0.0",
+  "_updated": "2026-04-15",
+  "_comment": "OPT 龙虾军团 v4.0 主配置文件 — 整合 Claude Code CARROS 四层记忆架构 + Hermes Agent 闭环学习系统",
+  "_upgrade": "拷贝此目录到 ~/.openclaw/ 即可完成升级，.env 是唯一需要手动配置的文件",
 
   "agents": {
     "defaults": {
       "workspace": "~/.openclaw/workspace",
       "compaction": {
+        "_comment": "基于 Claude Code Context Engineering，上下文超过 80% 时触发 Closeout 压缩",
         "reserveTokensFloor": 20000,
+        "compressionThreshold": 0.8,
+        "compressionStrategy": "closeout",
+        "protectHead": true,
+        "protectTailTurns": 5,
         "memoryFlush": {
           "enabled": true,
           "softThresholdTokens": 4000
         }
       },
       "memorySearch": {
+        "_comment": "L2 知识库 RAG 向量检索",
         "provider": "openai",
         "remote": {
           "model": "text-embedding-3-small"
         }
       },
       "taorEngine": {
+        "_comment": "基于 Claude Code TAOR 循环引擎：Think-Act-Observe-Repeat",
         "enabled": true,
         "maxRetries": 3,
-        "failClosed": true
+        "thinkBeforeAct": true,
+        "observeAfterAct": true,
+        "failClosed": true,
+        "errorHandling": "retry-then-escalate"
+      },
+      "hermesFeatures": {
+        "_comment": "基于 Hermes Agent 闭环学习系统",
+        "skillEvolution": {
+          "enabled": true,
+          "triggerOnSuccess": true,
+          "minComplexityScore": 7
+        },
+        "dialecticalModeling": {
+          "enabled": true,
+          "profileFile": "~/.openclaw/knowledge-base/profiles/USER_PROFILE.md"
+        },
+        "rlTrajectoryCollection": {
+          "enabled": false,
+          "_note": "需要配置 RL 训练服务器后启用"
+        }
       }
     },
     "list": [
       {
         "id": "cos",
         "name": "CoS 幕僚长",
+        "description": "唯一对话入口，任务拆解与分发，结果验收，辩证式用户建模",
         "workspace": "~/.openclaw/workspace/cos",
         "agentDir": "~/.openclaw/agents/cos",
         "default": true,
-        "model": { "provider": "anthropic", "model": "claude-sonnet-4-5" },
-        "disallowedTools": ["bash", "file_write", "file_edit"]
+        "model": { "provider": "anthropic", "model": "claude-opus-4-5" },
+        "disallowedTools": ["bash", "file_write", "file_edit", "deploy"],
+        "skills": ["opt-dialectical-modeling", "opt-daily-report"],
+        "onSessionStart": "read:~/.openclaw/knowledge-base/profiles/USER_PROFILE.md",
+        "onSessionEnd": "trigger:opt-daily-report"
       },
       {
         "id": "cto",
         "name": "CTO 技术合伙人",
+        "description": "技术架构设计，代码审查，技术债管理，监督 TAOR 循环",
         "workspace": "~/.openclaw/workspace/cto",
         "agentDir": "~/.openclaw/agents/cto",
         "model": { "provider": "anthropic", "model": "claude-sonnet-4-5" },
-        "disallowedTools": ["bash", "file_write", "file_edit"]
+        "disallowedTools": ["bash", "deploy", "delete_file"],
+        "skills": ["opt-taor-engine"]
       },
       {
         "id": "builder",
         "name": "Builder 全栈执行者",
+        "description": "代码实现，网站构建，工具集成，TAOR 循环执行，技能自进化",
         "workspace": "~/.openclaw/workspace/builder",
         "agentDir": "~/.openclaw/agents/builder",
         "model": { "provider": "openai", "model": "gpt-4.1-mini" },
-        "skills": ["opt-taor-engine", "opt-web-publisher", "opt-design-system"]
+        "disallowedTools": ["modify_config", "delete_agent", "modify_soul"],
+        "skills": [
+          "opt-taor-engine",
+          "opt-web-publisher",
+          "opt-design-system",
+          "opt-skill-evolution"
+        ],
+        "taorEngine": {
+          "maxRetries": 5,
+          "autoRetryOnError": true
+        }
       },
       {
         "id": "researcher",
         "name": "Researcher 市场情报官",
+        "description": "竞品分析，行业调研，技术趋势追踪，多源交叉验证",
         "workspace": "~/.openclaw/workspace/researcher",
         "agentDir": "~/.openclaw/agents/researcher",
         "model": { "provider": "google", "model": "gemini-2.5-flash" },
-        "disallowedTools": ["file_write", "file_edit", "bash"],
-        "skills": ["opt-taor-engine"]
+        "disallowedTools": ["file_write", "file_edit", "bash", "deploy"],
+        "skills": ["opt-taor-engine", "opt-rag-knowledge"],
+        "hermesFeatures": {
+          "multiSourceValidation": {
+            "enabled": true,
+            "minSources": 3
+          }
+        }
       },
       {
         "id": "ko",
         "name": "KO 知识管理员",
+        "description": "知识沉淀，技能提炼，用户画像更新，Auto Dream 记忆巩固",
         "workspace": "~/.openclaw/workspace/ko",
         "agentDir": "~/.openclaw/agents/ko",
         "model": { "provider": "openai", "model": "gpt-4.1-nano" },
-        "skills": ["opt-autodream-memory", "opt-rag-knowledge"],
+        "disallowedTools": ["bash", "deploy", "delete_others_work"],
+        "skills": [
+          "opt-autodream-memory",
+          "opt-rag-knowledge",
+          "opt-dialectical-modeling",
+          "opt-skill-evolution"
+        ],
         "schedule": {
-          "autodream": "0 2 * * *"
+          "autodream": "0 2 * * *",
+          "profileUpdate": "0 3 * * 1"
         }
       },
       {
         "id": "ops",
         "name": "Ops 运维审计员",
+        "description": "系统监控，安全审计，角色漂移防护，自动备份",
         "workspace": "~/.openclaw/workspace/ops",
         "agentDir": "~/.openclaw/agents/ops",
         "model": { "provider": "openai", "model": "gpt-4.1-mini" },
-        "disallowedTools": ["file_edit"],
+        "disallowedTools": ["file_edit", "deploy", "modify_config"],
         "skills": ["opt-security-audit", "opt-auto-backup"],
         "schedule": {
           "backup": "0 3 * * *",
-          "audit": "0 9 * * 1"
+          "audit": "0 1 * * 1"
+        },
+        "securityConfig": {
+          "failClosed": true,
+          "auditAllOperations": true,
+          "alertOnRoleDrift": true
         }
       }
     ]
@@ -123,28 +188,64 @@
   ],
 
   "agentToAgent": {
+    "_comment": "基于 Claude Code requireVisibleAnchor 两步触发协议",
     "allow": true,
     "maxPingPongTurns": 10,
-    "requireVisibleAnchor": true
+    "requireVisibleAnchor": true,
+    "anchorFormat": "[A2A] {from} → {to}: {task}",
+    "taskStructure": "QAPS",
+    "singleEntryPoint": "cos"
   },
 
   "skills": {
     "load": {
       "extraDirs": ["~/.openclaw/skills"],
       "watch": true
+    },
+    "evolution": {
+      "_comment": "基于 Hermes Agent 技能自进化系统",
+      "enabled": true,
+      "autoCreateOnSuccess": true,
+      "versionControl": true,
+      "changelogRequired": true
     }
   },
 
   "memory": {
+    "_comment": "四层记忆架构：L0（会话）→ L1（工作区）→ L2（知识库）→ L3（Auto Dream）",
     "layers": {
-      "l1": { "path": "~/.openclaw/workspace/{agentId}/memory", "retention": "30d" },
-      "l2": { "path": "~/.openclaw/knowledge-base", "vectorize": true }
+      "l0": {
+        "type": "session",
+        "maxTokens": 100000,
+        "compressionThreshold": 0.8
+      },
+      "l1": {
+        "type": "workspace",
+        "path": "~/.openclaw/workspace/{agentId}/memory",
+        "format": "markdown",
+        "retention": "30d"
+      },
+      "l2": {
+        "type": "knowledge-base",
+        "path": "~/.openclaw/knowledge-base",
+        "vectorize": true,
+        "deduplication": true
+      },
+      "l3": {
+        "type": "auto-dream",
+        "schedule": "0 2 * * *",
+        "sourceLayer": "l1",
+        "targetLayer": "l2",
+        "dialecticalModeling": true
+      }
     }
   },
 
   "security": {
+    "_comment": "基于 Claude Code Fail-closed 安全哲学",
     "dmPolicy": "pairing",
     "failClosed": true,
+    "requireConfirmation": ["deploy", "delete", "modify_config", "run_bash"],
     "sandboxing": {
       "enabled": true,
       "workspaceAccess": "rw",
@@ -152,7 +253,8 @@
     },
     "audit": {
       "enabled": true,
-      "logPath": "~/.openclaw/logs/audit.log"
+      "logPath": "~/.openclaw/logs/audit.log",
+      "schedule": "0 1 * * 1"
     }
   },
 
