@@ -1,7 +1,7 @@
 {
-  "version": "6.2.0",
-  "name": "OPT Lobster Legion v6.2",
-  "description": "Super Agent Infrastructure based on Claude Code, Hermes, and OpenHarness",
+  "version": "7.0.0",
+  "name": "OPT Lobster Legion v7.0",
+  "description": "Super Agent Infrastructure based on Claude Code, Hermes, and OpenHarness — with Multimodal Vision + MCP Permission Router",
   "engine": {
     "type": "taor",
     "maxRetries": 3,
@@ -132,6 +132,21 @@
         "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://localhost/mydb"]
       }
     }
+  },
+  "vision": {
+    "enabled": true,
+    "engine": "engine/vision_parser.py",
+    "defaultBackend": "openai",
+    "model": "gpt-4o",
+    "similarityThreshold": 0.9,
+    "outputDir": "workspace/components/"
+  },
+  "mcpRouter": {
+    "enabled": true,
+    "engine": "engine/mcp_router.py",
+    "auditLog": "memory/kairos_logs/mcp_audit.jsonl",
+    "failClosed": true,
+    "permissionMatrix": "config/mcp_permissions.json"
   },
   "scheduler": {
     "autoDream": {

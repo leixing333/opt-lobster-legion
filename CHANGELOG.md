@@ -4,6 +4,27 @@
 
 ---
 
+## [v7.0.0] — 2026-04-16 (多模态视觉 + MCP 权限路由)
+
+### 新增
+- `engine/vision_parser.py`（622行）：多模态视觉解析引擎，支持 GPT-4o / Claude 3.7 两种后端
+  - `parse_design()`：解析 Figma 设计图，提取组件结构、设计 Token（颜色/字体/间距）
+  - `generate_component()`：基于解析结果生成 React + TailwindCSS 组件代码（含测试文件和 README）
+  - `compare_with_design()`：对比设计图与实现截图，生成视觉差异分析报告
+  - `design_to_code_pipeline()`：一键完整流水线（解析 → 生成代码 → 生成 DESIGN_SYSTEM.md）
+- `engine/mcp_router.py`（约350行）：统一 MCP 服务器权限路由器
+  - 8 Agent × 5 MCP 服务器的完整权限矩阵（Jira/Slack/GitHub/Figma/Postgres）
+  - Fail-closed 拦截：未授权调用立即抛出 `MCPPermissionError` 并记录到 KAIROS
+  - `generate_permission_report()`：生成 Markdown 格式的权限矩阵报告
+- `agents/fe/SOUL.md` v4.0：新增多模态视觉工作流（5步流程）和 MCP 权限表
+- `agents/cos/SOUL.md` v4.0：新增 KAIROS 日志使用规范和 MCP 统一授权职责
+- `config/openclaw.json` 新增 `vision` 和 `mcpRouter` 配置块
+
+### 变更
+- `config/openclaw.json` 版本号升至 `7.0.0`
+
+---
+
 ## [v6.2.0] — 2026-04-16 (KAIROS 追加式日志系统)
 
 ### 新增
