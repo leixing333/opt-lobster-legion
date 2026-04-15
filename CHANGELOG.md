@@ -4,6 +4,49 @@
 
 ---
 
+## [v7.1.0] — 2026-04-16 (Google Stitch + Nano Banana 集成)
+
+### 新增
+- `engine/stitch_client.py`（601行）：Google Stitch UI 生成客户端
+  - `generate_ui(prompt, device_type)`：文本生成 UI 界面（支持 web/app）
+  - `edit_screen(screen_id, prompt)`：用自然语言编辑现有界面
+  - `generate_variants(prompt, n)`：生成 N 个设计变体（A/B 测试）
+  - `full_pipeline(prompt)`：Stitch 生成 → 截图 → Nano Banana 增强 → 保存 HTML 完整流水线
+  - `StitchScreen.get_html()`：获取界面 HTML/CSS 代码
+  - 支持 Stitch SDK（Node.js）和 MCP 协议双通道，自动选择最佳方式
+- `engine/nano_banana_client.py`（583行）：Nano Banana 图像生成客户端（基于 Gemini API）
+  - `text_to_image(prompt)`：文本生成图像（支持宽高比、分辨率、负向提示词）
+  - `image_to_image(prompt, reference)`：图像编辑（基于参考图 + 文本指令）
+  - `multi_turn_edit(prompt)`：多轮对话式图像编辑会话
+  - `generate_ui_assets(asset_type, description)`：专为 UI 设计生成图像资产（icon/illustration/background/hero/banner/avatar）
+  - `generate_from_stitch(screenshot_path)`：Stitch 截图 → Nano Banana 增强视觉质量
+  - `generate_design_variants(prompt, variants)`：批量生成设计变体
+  - 支持三个模型：Nano Banana 2 / Nano Banana Pro / Nano Banana
+- `engine/vision_parser.py`（v7.1 新增方法）：集成 Stitch 和 Nano Banana
+  - `parse_from_stitch(prompt)`：Stitch 生成 UI → VisionParser 解析（联合流水线）
+  - `generate_assets_with_nano_banana(parse_result)`：基于解析结果自动生成配套图像资产
+  - `full_pipeline_v71(source)`：Stitch + VisionParser + Nano Banana 三方联合完整流水线
+
+### 更新
+- `config/openclaw.json` v7.1.0：新增 `stitch` 和 `nanaBanana` 配置块
+  - Stitch：认证方式、默认设备类型、Agent 权限矩阵、流水线配置
+  - Nano Banana：三个模型配置、Agent 权限矩阵、Stitch 集成配置
+
+### 安装要求
+```bash
+# Stitch SDK（Node.js）
+npm install -g @google/stitch-sdk
+
+# Nano Banana（Python）
+pip install google-genai pillow
+
+# 环境变量
+export STITCH_API_KEY=your_stitch_api_key
+export GOOGLE_API_KEY=your_google_api_key
+```
+
+---
+
 ## [v7.0.0] — 2026-04-16 (多模态视觉 + MCP 权限路由)
 
 ### 新增

@@ -1,7 +1,7 @@
 {
-  "version": "7.0.0",
-  "name": "OPT Lobster Legion v7.0",
-  "description": "Super Agent Infrastructure based on Claude Code, Hermes, and OpenHarness — with Multimodal Vision + MCP Permission Router",
+  "version": "7.1.0",
+  "name": "OPT Lobster Legion v7.1",
+  "description": "Super Agent Infrastructure based on Claude Code, Hermes, and OpenHarness — with Multimodal Vision + MCP Permission Router + Google Stitch + Nano Banana",
   "engine": {
     "type": "taor",
     "maxRetries": 3,
@@ -147,6 +147,53 @@
     "auditLog": "memory/kairos_logs/mcp_audit.jsonl",
     "failClosed": true,
     "permissionMatrix": "config/mcp_permissions.json"
+  },
+  "stitch": {
+    "enabled": true,
+    "client": "engine/stitch_client.py",
+    "sdkPackage": "@google/stitch-sdk",
+    "mcpServer": "stitch.googleapis.com",
+    "auth": {
+      "apiKeyEnv": "STITCH_API_KEY",
+      "accessTokenEnv": "STITCH_ACCESS_TOKEN",
+      "projectIdEnv": "STITCH_PROJECT_ID"
+    },
+    "defaultDeviceType": "web",
+    "pipeline": {
+      "autoEnhanceWithNanaBanana": true,
+      "outputDir": "workspace/stitch_output/",
+      "saveHtml": true,
+      "saveScreenshot": true
+    },
+    "agents": {
+      "fe": ["generate_ui", "edit_screen", "generate_variants", "full_pipeline"],
+      "cos": ["generate_variants", "list_projects"],
+      "cto": ["list_projects", "list_screens"]
+    }
+  },
+  "nanaBanana": {
+    "enabled": true,
+    "client": "engine/nano_banana_client.py",
+    "auth": {
+      "apiKeyEnv": "GOOGLE_API_KEY",
+      "fallbackEnv": "GEMINI_API_KEY"
+    },
+    "models": {
+      "default": "gemini-3.1-flash-image-preview",
+      "pro": "gemini-3-pro-image-preview",
+      "fast": "gemini-2.5-flash-image"
+    },
+    "defaultAspectRatio": "16:9",
+    "agents": {
+      "fe": ["generate_ui_assets", "text_to_image", "image_to_image", "generate_design_variants"],
+      "cos": ["text_to_image"],
+      "researcher": ["text_to_image"]
+    },
+    "stitchIntegration": {
+      "enabled": true,
+      "autoEnhanceScreenshots": true,
+      "enhancementModel": "gemini-3-pro-image-preview"
+    }
   },
   "scheduler": {
     "autoDream": {
