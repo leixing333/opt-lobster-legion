@@ -1,131 +1,52 @@
-# OPT 龙虾军团 A2A（Agent-to-Agent）通信协议 v4.0
+# A2A (Agent-to-Agent) 协作协议 v5.0
 
-## 协议概述
-本协议定义了 OPT 龙虾军团中 6 个 Agent 之间的通信规范，基于 Claude Code 的 `requireVisibleAnchor` 两步触发机制，确保所有 Agent 间的协作都是**可追溯、可审计、有边界**的。
+## 1. 协议简介
 
----
+本协议定义了 OPT 龙虾军团中 6 个 Agent 之间的协作规范。基于 OpenHarness 的 Swarm 架构和 Claude Code 的 Fail-closed 原则，本协议确保多 Agent 协作的高效性、可追溯性和安全性。
 
-## 核心原则
+## 2. 核心原则
 
-### 1. 可见锚点原则（Visible Anchor）
-所有 A2A 调用必须在对话中留下**可见的文字锚点**，格式如下：
-```
-[A2A] CoS → Builder: 执行任务 #TASK-001
-```
-这个锚点的作用是：
-- 让老板随时可以看到 Agent 之间在做什么。
-- 防止 Agent 在后台"悄悄"执行未经授权的操作。
-- 为 Ops 的安全审计提供可追溯的日志。
+1. **单点入口**：所有外部任务必须由 CoS（幕僚长）接收并拆解，其他 Agent 不直接与用户交互。
+2. **显式锚点（Visible Anchor）**：Agent 之间的任务交接必须通过写入文件（如 `workspace/shared/task-123.md`）进行，禁止仅通过内存或隐藏消息传递。
+3. **QAPS 结构**：所有派单必须遵循 QAPS（Question, Assets, Plan, Success Criteria）结构。
+4. **Fail-closed 升级**：当底层 Agent（如 Builder）遇到无法解决的错误时，必须向上级（CTO 或 CoS）汇报，禁止静默失败。
 
-### 2. 两步触发原则（Two-Step Trigger）
-A2A 调用分为两个步骤：
-1. **Step 1（声明）**：调用方 Agent 在对话中声明意图，等待确认。
-2. **Step 2（执行）**：确认后，被调用方 Agent 才开始执行任务。
+## 3. QAPS 派单结构
 
-### 3. 单一入口原则（Single Entry Point）
-老板只与 **CoS（幕僚长）** 直接对话。其他 Agent 不直接接受老板的指令，所有任务都通过 CoS 分发。
+当一个 Agent 向另一个 Agent 派发任务时，必须在共享目录中创建一个 Markdown 文件，包含以下四个部分：
 
----
-
-## 频道隔离（Channel Isolation）
-每个 Agent 绑定一个独立的 Slack 频道：
-
-| 频道 | 绑定 Agent | 用途 |
-|---|---|---|
-| `#hq` | CoS | 老板与 CoS 的专属频道 |
-| `#cto` | CTO | 技术架构讨论 |
-| `#build` | Builder | 代码提交和部署 |
-| `#research` | Researcher | 市场调研和竞品分析 |
-| `#know` | KO | 知识沉淀和技能提炼 |
-| `#ops` | Ops | 系统监控和安全审计 |
-
----
-
-## QAPS 任务结构
-所有 A2A 任务必须使用 QAPS 结构进行描述：
-
-| 字段 | 说明 | 示例 |
-|---|---|---|
-| **Q**uestion（问题） | 需要解决的核心问题 | "如何将网站部署到 GitHub Pages？" |
-| **A**nswer（预期答案） | 期望的输出形式 | "一个可访问的 GitHub Pages URL" |
-| **P**rocess（执行过程） | 执行的关键步骤 | "1. 创建 gh-pages 分支 2. 推送文件 3. 启用 Pages" |
-| **S**ource（信息来源） | 参考的知识库或技能 | "`skills/opt-web-publisher/SKILL.md`" |
-
----
-
-## Agent 通信矩阵
-
-| 调用方 | 可调用的 Agent | 调用场景 |
-|---|---|---|
-| **CoS** | 所有 Agent | 任务分发、结果验收 |
-| **CTO** | Builder | 技术方案实施 |
-| **Builder** | CTO | 遇到架构问题时请求指导 |
-| **Researcher** | KO | 将调研结果沉淀到知识库 |
-| **KO** | 所有 Agent | 请求提供工作成果用于知识沉淀 |
-| **Ops** | CoS | 上报安全审计结果 |
-
-**禁止的调用关系：**
-- Builder 不得直接调用 Researcher（必须通过 CoS）。
-- 任何 Agent 不得直接修改其他 Agent 的 `SOUL.md`。
-
----
-
-## 标准 A2A 消息格式
-
-### 任务派发消息（CoS → 其他 Agent）
 ```markdown
-[A2A] CoS → {AgentName}: 任务 #{TASK-ID}
+# 任务：[任务名称]
 
-**任务描述**：{简要描述任务目标}
+## 1. Question (核心问题/目标)
+[明确说明需要解决的问题或达成的目标]
 
-**QAPS 结构**：
-- Q：{需要解决的核心问题}
-- A：{期望的输出形式}
-- P：{执行的关键步骤}
-- S：{参考的知识库或技能路径}
+## 2. Assets (可用资产/上下文)
+[列出相关的代码文件路径、API 文档链接、历史错误日志等]
 
-**截止时间**：{预计完成时间}
-**优先级**：{高/中/低}
+## 3. Plan (执行计划/约束)
+[说明执行步骤的建议，以及必须遵守的约束条件（如：不能修改数据库结构）]
+
+## 4. Success Criteria (验收标准)
+[明确说明什么情况下算作任务完成（如：所有单元测试通过，且覆盖率 > 80%）]
 ```
 
-### 任务完成消息（其他 Agent → CoS）
-```markdown
-[A2A] {AgentName} → CoS: 任务 #{TASK-ID} 完成
+## 4. 协作链路示例
 
-**完成状态**：✅ 成功 / ⚠️ 部分完成 / ❌ 失败
+### 场景：开发一个新功能
 
-**产出物**：
-- {产出物描述} - {文件路径或 URL}
+1. **CoS -> CTO**：CoS 接收用户需求，向 CTO 派发架构设计任务。
+2. **CTO -> Builder**：CTO 完成设计后，向 Builder 派发具体的编码任务（附带 QAPS 文档）。
+3. **Builder -> Researcher**（可选）：Builder 在编码时遇到未知的第三方 API，向 Researcher 派发调研任务。
+4. **Builder -> CTO**：Builder 完成编码，向 CTO 提交代码审查请求。
+5. **CTO -> CoS**：CTO 审查通过，向 CoS 汇报功能已完成。
+6. **CoS -> 用户**：CoS 向用户交付最终成果。
 
-**遇到的问题**：
-- {问题描述（如有）}
+## 5. 异常处理与升级（Escalation）
 
-**建议后续行动**：
-- {建议（如有）}
+当 Agent 遇到以下情况时，必须触发升级流程：
+
+- **TAOR 循环耗尽**：Builder 重试 3 次仍失败 -> 升级给 CTO。
+- **权限不足**：需要执行危险命令（如删除数据库） -> 升级给 Ops 审计，并由 CoS 确认。
+- **需求模糊**：CTO 发现需求存在逻辑漏洞 -> 升级给 CoS，由 CoS 向用户澄清。
 ```
-
-### 错误上报消息（任何 Agent → CoS）
-```markdown
-[A2A] {AgentName} → CoS: 错误上报 #{ERROR-ID}
-
-**错误类型**：{技术错误/权限错误/资源不足/其他}
-**错误描述**：{详细描述错误情况}
-**已尝试的解决方案**：{描述已经尝试过的方法}
-**需要的支持**：{需要 CoS 或其他 Agent 提供什么帮助}
-```
-
----
-
-## Closeout 机制（上下文压缩）
-基于 Claude Code 的 Context Engineering，当对话上下文接近 Token 上限时，CoS 必须执行 Closeout：
-
-1. **识别压缩时机**：当上下文超过 80% 时触发。
-2. **保护头尾**：保留最初的系统提示和最近 5 轮对话。
-3. **压缩中间**：将中间的对话内容压缩为结构化摘要，保存到 `workspace/cos/closeout-YYYY-MM-DD.md`。
-4. **注入摘要**：将摘要作为新的上下文注入，继续对话。
-
----
-
-## 变更日志
-- 2026-04-15 v4.0：基于 Claude Code `requireVisibleAnchor` 机制深度重写，增加频道隔离表、QAPS 任务结构、Agent 通信矩阵、标准消息格式和 Closeout 机制。
-- 2026-03-15 v3.0：初始版本。

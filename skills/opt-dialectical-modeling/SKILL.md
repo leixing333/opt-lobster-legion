@@ -1,87 +1,87 @@
-# 技能：OPT 辩证式用户建模
+# opt-dialectical-modeling: 辩证式用户建模
 
-## 简介
-本技能基于 Hermes Agent 的 Honcho 引擎理念，为 OPT 龙虾军团引入**动态用户画像更新**能力。它借鉴黑格尔的"正-反-合"辩证逻辑，通过融合新旧观察来生成更准确的用户画像，而不是简单地追加新信息，避免产生自相矛盾的描述。
+## 1. 技能简介
 
-## 适用角色
-**KO**（主要）、**CoS**（触发）
+`opt-dialectical-modeling` 是 OPT 龙虾军团 v5.0 的用户画像管理技能，基于 Hermes Agent 的辩证式建模（Dialectical Modeling）理念设计。
+它摒弃了传统的"累加式"画像，采用黑格尔的"正-反-合"（Thesis-Antithesis-Synthesis）逻辑，动态捕捉用户偏好的演变趋势。
 
-## 触发条件
-- 当老板对某类输出表示明显的满意或不满意时。
-- 当老板的工作习惯或偏好发生明显变化时（如：从偏好简洁风格转向详细风格）。
-- 每月定期触发一次，对用户画像进行全面回顾和更新。
-- 在每个工作日结束（Closeout）或项目里程碑节点时。
+## 2. 核心机制（Harness 层）
 
-## 执行步骤
+- **正题（Thesis）**：当前知识库中已有的用户画像（`USER_PROFILE.md`）。
+- **反题（Antithesis）**：在最近的对话或任务中观察到的新行为、新偏好或矛盾点。
+- **合题（Synthesis）**：使用 LLM 将正题和反题进行辩证融合，生成一个更高维度的、包含演变趋势的新画像。
 
-### 步骤 1：读取现有画像（Read Thesis）
-读取 `knowledge-base/profiles/USER_PROFILE.md` 中的现有用户画像（正题）：
-```bash
-cat ./knowledge-base/profiles/USER_PROFILE.md
+## 3. 执行脚本示例
+
+### 3.1 Python 辩证融合脚本 (`dialectical_merge.py`)
+
+KO（知识管理员）可以使用此脚本更新用户画像：
+
+```python
+#!/usr/bin/env python3
+# dialectical_merge.py - 辩证式用户画像融合脚本
+
+import os
+import sys
+import datetime
+
+PROFILE_PATH = "knowledge-base/profiles/USER_PROFILE.md"
+
+def read_current_profile():
+    """读取当前画像（正题）"""
+    if not os.path.exists(PROFILE_PATH):
+        return "No existing profile."
+    with open(PROFILE_PATH, 'r', encoding='utf-8') as f:
+        return f.read()
+
+def generate_synthesis(thesis, antithesis):
+    """
+    模拟 LLM 的辩证融合过程。
+    在实际应用中，这里会调用 LLM API，传入 thesis 和 antithesis，
+    要求其输出 synthesis。
+    """
+    print("[Dialectical Modeling] Calling LLM to synthesize...")
+    # 这里是一个硬编码的示例输出
+    synthesis = f"""# 用户画像 (更新于 {datetime.date.today().isoformat()})
+
+## 核心身份与演变趋势
+用户原本是一位偏好快速原型开发的 Python 开发者（正题），
+但最近开始频繁关注 Rust 的内存安全和性能优化（反题）。
+目前正处于从脚本语言向系统级编程语言转型的阶段（合题）。
+
+## 沟通策略
+- 在提供架构建议时，优先考虑高性能和内存安全的方案（如 Rust）。
+- 在需要快速验证想法时，仍可提供 Python 脚本，但需说明其性能瓶颈。
+"""
+    return synthesis
+
+def update_profile(antithesis):
+    """执行辩证更新流程"""
+    print("[Dialectical Modeling] Starting dialectical update...")
+    
+    thesis = read_current_profile()
+    print(f"  - Thesis (Current Profile): {len(thesis)} chars")
+    print(f"  - Antithesis (New Observation): {antithesis}")
+    
+    synthesis = generate_synthesis(thesis, antithesis)
+    
+    os.makedirs(os.path.dirname(PROFILE_PATH), exist_ok=True)
+    with open(PROFILE_PATH, 'w', encoding='utf-8') as f:
+        f.write(synthesis)
+        
+    print(f"[Dialectical Modeling] Successfully updated {PROFILE_PATH}")
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python3 dialectical_merge.py <new_observation>")
+        sys.exit(1)
+        
+    new_observation = sys.argv[1]
+    update_profile(new_observation)
 ```
 
-### 步骤 2：记录新观察（Record Antithesis）
-记录最近观察到的新事实（反题）：
-- 老板的新反馈（如："这个报告太简短了，我需要更多细节"）。
-- 老板的新行为（如：开始频繁使用 Markdown 格式）。
-- 老板的新偏好（如：更喜欢表格而不是列表）。
+## 4. 协作与触发
 
-### 步骤 3：辩证融合（Synthesize）
-将正题和反题进行辩证融合，生成新的合题（Synthesis）。
-
-**示例：**
-
-| 阶段 | 内容 |
-|---|---|
-| **正题（旧画像）** | "老板偏好简洁的输出，不喜欢冗长的报告" |
-| **反题（新观察）** | "老板最近多次要求提供更多细节和背景信息" |
-| **合题（新画像）** | "老板偏好在摘要层面保持简洁，但在需要决策支持时，希望有充分的细节和背景信息。建议采用'摘要 + 可展开详情'的结构" |
-
-**错误做法（简单追加）：**
-> "老板偏好简洁的输出，不喜欢冗长的报告。**也**喜欢详细的报告。"
-
-这种矛盾的描述会让 Agent 无所适从。辩证融合才能生成真正有用的画像。
-
-### 步骤 4：更新画像文件（Update Profile）
-将新的合题覆盖写入 `knowledge-base/profiles/USER_PROFILE.md`，并记录更新时间：
-```markdown
-## 演变日志 (Evolution Log)
-- YYYY-MM-DD：[简要描述本次更新的原因和内容]
-```
-
-## 用户画像文件结构
-`knowledge-base/profiles/USER_PROFILE.md` 应包含以下维度（纯自然语言描述，可直接注入 System Prompt）：
-
-```markdown
-# 用户画像：[老板姓名/代号]
-
-## 核心画像 (The Synthesis)
-[一段连贯的自然语言描述，综合了用户的技术栈、偏好、动机和近期发展趋势。]
-
-## 沟通偏好
-[例如：喜欢简短直接的回答，附带代码示例，讨厌长篇大论的理论解释。]
-
-## 技术背景与工具偏好
-[例如：有深厚 Python 背景，正在向 Rust 转型，关注内存安全和性能。]
-
-## 审美偏好
-[例如：偏好深色科技风设计，喜欢简洁的排版，讨厌过多的装饰元素。]
-
-## 近期关注点
-[例如：正在探索 AI Agent 架构和一人公司模式。]
-
-## 演变日志 (Evolution Log)
-- YYYY-MM-DD：[更新原因]
-```
-
-## 上下文注入（Context Injection）
-- **首轮对话**：CoS 在开启新会话时，应主动读取 `USER_PROFILE.md` 的核心内容，并将其作为上下文参考。
-- **避免缓存失效**：在长对话中，如果画像发生微调，尽量将更新后的画像附加到用户消息中，而不是修改系统提示，以最大化利用 LLM 的 Prompt Caching 机制。
-
-## 注意事项与避坑指南
-- **避免矛盾描述**：如果新旧观察存在矛盾，必须通过辩证融合生成统一的描述，而不是简单追加。
-- **保持简洁**：用户画像应该是精炼的自然语言描述，而不是流水账式的记录。
-- **定期回顾**：每月至少回顾一次用户画像，删除过时的信息。
-
-## 变更日志
-- 2026-04-15 v4.0：基于 Hermes Agent Honcho 用户建模机制深度重写，增加辩证融合示例表、用户画像文件结构模板和上下文注入策略。
+- **触发者**：KO（知识管理员）。
+- **前置条件**：在 Auto Dream 期间，或 CoS 明确指出了用户偏好的重大变化。
+- **输出结果**：更新后的 `USER_PROFILE.md`，包含最新的演变趋势。

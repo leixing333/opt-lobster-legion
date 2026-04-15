@@ -1,81 +1,84 @@
-# 技能：OPT 技能自进化引擎
+# opt-skill-evolution: 技能自进化引擎
 
-## 简介
-本技能基于 Hermes Agent 的闭环学习系统，为 Builder 和 Researcher 提供**技能自动创建与持续优化**能力。它形成了一个正反馈循环：执行任务 → 发现可复用模式 → 创建技能 → 下次使用更好的版本，实现系统的自我进化。
+## 1. 技能简介
 
-## 适用角色
-**Builder**（主要）、**Researcher**（次要）、**KO**（审核）
+`opt-skill-evolution` 是 OPT 龙虾军团 v5.0 的核心进化机制，基于 Hermes Agent 的自我改进（Self-Improvement）架构设计。
+它允许 Agent 在执行任务的过程中，发现重复的成功模式，并将其自动提炼为新的 `SKILL.md` 文件，从而实现系统能力的持续增长。
 
-## 触发条件
-- 当 Builder 成功解决了一个复杂的技术问题，且该问题**未来可能再次出现**时。
-- 当某个任务流程被成功执行 **3 次以上**时。
-- 当 Researcher 完成了一次特定领域的深度调研，且该调研方法可以复用时。
-- 当 CoS 明确指示需要将某项工作流固化为标准技能时。
+## 2. 核心机制（Harness 层）
 
-## 执行步骤
+- **发现（Discover）**：在执行任务时，如果某个复杂的命令组合或代码片段被成功执行多次，Agent 应意识到这是一个"可复用模式"。
+- **提炼（Distill）**：使用 LLM 将该模式抽象化，提取参数，编写标准化的执行步骤。
+- **生成（Generate）**：按照 `agentskills.io` 的标准格式，生成新的 `SKILL.md` 文件。
+- **注册（Register）**：将新技能注册到知识库索引中，供其他 Agent 调用。
 
-### 步骤 1：价值评估（Value Assessment）
-在创建新技能前，先评估是否值得创建：
-- **值得创建**：该任务流程预计未来会被复用 3 次以上。
-- **不值得创建**：该任务是一次性的、高度定制化的，不具有通用性。
+## 3. 执行脚本示例
 
-### 步骤 2：技能草稿（Draft）
-按照以下标准格式创建 `SKILL.md` 草稿（兼容 `agentskills.io` 开放标准）：
+### 3.1 Python 技能生成器 (`skill_generator.py`)
 
-```markdown
-# 技能：[技能名称]
+Builder 或 KO 可以使用此脚本将成功模式转化为标准技能文件：
 
-## 简介
-[一句话描述技能的核心功能]
+```python
+#!/usr/bin/env python3
+# skill_generator.py - 技能自进化生成器
 
-## 适用角色
-[哪些 Agent 可以使用此技能]
+import os
+import sys
+import datetime
 
-## 触发条件
-[何时应该调用此技能]
+SKILLS_DIR = "skills"
 
-## 前置准备
-[需要的环境变量、API Key 或特定文件]
+def generate_skill_md(skill_name, description, trigger, steps, example_code):
+    """
+    生成标准化的 SKILL.md 文件。
+    """
+    skill_dir = os.path.join(SKILLS_DIR, skill_name)
+    os.makedirs(skill_dir, exist_ok=True)
+    
+    filepath = os.path.join(skill_dir, "SKILL.md")
+    
+    content = f"""# {skill_name}
 
-## 执行步骤
-[详细的、可执行的步骤，包含具体的命令示例]
+## 1. 技能简介
+{description}
 
-## 注意事项与避坑指南
-[已知的坑和注意事项]
+## 2. 触发条件
+{trigger}
 
-## 变更日志
-- YYYY-MM-DD v1.0：初始创建
+## 3. 执行步骤
+{steps}
+
+## 4. 执行脚本示例
+```bash
+{example_code}
 ```
 
-### 步骤 3：命名规范（Naming Convention）
-技能目录名必须遵循以下规范：
-- 格式：`opt-{功能描述}-{可选修饰词}`
-- 示例：`opt-deploy-github-pages`、`opt-analyze-competitor`、`opt-generate-design-spec`
+## 5. 变更日志
+- {datetime.date.today().isoformat()} v1.0: 由 opt-skill-evolution 自动生成。
+"""
+    
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+        
+    print(f"[Skill Evolution] Successfully generated new skill: {filepath}")
+    return filepath
 
-### 步骤 4：提交审核（Submit for Review）
-将新技能草稿提交给 KO 审核：
-- KO 检查格式是否符合 `agentskills.io` 标准。
-- KO 检查是否与现有技能重复。
-- KO 审核通过后，将技能存入 `skills/` 目录。
+if __name__ == "__main__":
+    # 示例用法（在实际中，这些参数由 LLM 提炼生成）
+    if len(sys.argv) > 1 and sys.argv[1] == "--demo":
+        generate_skill_md(
+            skill_name="opt-demo-skill",
+            description="这是一个自动生成的演示技能。",
+            trigger="当需要演示技能进化时触发。",
+            steps="1. 运行脚本\n2. 观察输出",
+            example_code="echo 'Hello, Evolution!'"
+        )
+    else:
+        print("Usage: python3 skill_generator.py --demo")
+```
 
-### 步骤 5：持续优化（Continuous Improvement）
-每次使用技能后，如果发现改进点，必须更新 `SKILL.md`：
-- 在**变更日志**中记录修改内容。
-- 更新**注意事项与避坑指南**，加入新发现的坑。
-- 如果执行步骤有重大变化，更新版本号（如 v1.0 → v2.0）。
+## 4. 协作与触发
 
-## 技能质量标准
-
-| 质量维度 | 标准 |
-|---|---|
-| 可执行性 | 每个步骤都有具体的命令示例，而不是模糊的描述 |
-| 完整性 | 包含触发条件、执行步骤、错误处理和变更日志 |
-| 可复用性 | 适用于 3 个以上不同的具体场景 |
-| 安全性 | 不包含危险命令，不越权操作 |
-
-## 安全与边界
-- **人工审计**：所有自动创建或更新的技能，必须在 Ops 的每周审计报告中列出，供老板 Review。
-- **破坏性操作限制**：技能文档中不得包含未经授权的破坏性命令（如 `rm -rf /`），必须遵循 Fail-closed 安全原则。
-
-## 变更日志
-- 2026-04-15 v4.0：基于 Hermes Agent 闭环学习系统深度重写，增加价值评估、命名规范和质量标准表。
+- **触发者**：Builder（发现代码模式）、KO（在 Auto Dream 期间发现重复模式）。
+- **前置条件**：某个复杂操作被成功执行 3 次以上，且具有通用性。
+- **输出结果**：在 `skills/` 目录下生成新的技能文件夹和 `SKILL.md`。

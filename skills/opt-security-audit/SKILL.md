@@ -1,65 +1,89 @@
-# 技能：OPT 安全审计系统
+# opt-security-audit: 安全审计与权限控制
 
-## 简介
-本技能基于 Claude Code 的 Fail-closed 安全哲学，为 Ops（运维审计员）提供**系统安全审计**能力。它通过定期检查 Agent 的行为日志，防止角色漂移、越权操作和技能滥用，确保整个 OPT 系统在安全可控的边界内运行。
+## 1. 技能简介
 
-## 适用角色
-**Ops**（主要）
+`opt-security-audit` 是 OPT 龙虾军团 v5.0 的安全基石，基于 Claude Code 的 Fail-closed 原则和 OpenHarness 的 Hooks 机制设计。
+它由 Ops（运维审计员）执行，负责拦截危险操作、审计执行日志，并防止 Agent 发生角色漂移（Role Drift）。
 
-## 触发条件
-- 每周一凌晨定时任务触发（推荐 01:00 AM）。
-- 当 CoS 收到异常报告时手动触发。
-- 当某个 Agent 在 24 小时内调用了超过 50 次工具时自动触发。
+## 2. 核心机制（Harness 层）
 
-## 执行步骤
+- **PreToolUse Hook（事前拦截）**：在执行任何工具调用前，检查命令是否在黑名单中（如 `rm -rf /`、`chmod 777`）。
+- **PostToolUse Hook（事后清洗）**：在工具执行后，扫描输出日志，脱敏敏感信息（如 API Keys、密码）。
+- **Role Drift Check（角色漂移检查）**：定期扫描各 Agent 的行为日志，确保其没有越权执行任务（如 Researcher 写代码）。
 
-### 步骤 1：日志收集（Log Collection）
-收集各 Agent 的操作日志：
-```bash
-# 收集过去 7 天的操作日志
-find ./workspace -name "*.log" -newer $(date -d "7 days ago" +%Y-%m-%d) -type f
+## 3. 执行脚本示例
+
+### 3.1 Python 审计脚本 (`security_audit.py`)
+
+Ops 可以使用此脚本进行安全审计：
+
+```python
+#!/usr/bin/env python3
+# security_audit.py - 安全审计与 Hooks 拦截脚本
+
+import re
+import sys
+
+# 危险命令黑名单
+DANGEROUS_COMMANDS = [
+    r"rm\s+-rf\s+/",
+    r"chmod\s+777",
+    r"mkfs",
+    r"dd\s+if=",
+    r">\s*/dev/sda"
+]
+
+# 敏感信息正则（如 API Keys）
+SENSITIVE_PATTERNS = [
+    r"sk-[a-zA-Z0-9]{48}",  # OpenAI Key
+    r"ghp_[a-zA-Z0-9]{36}", # GitHub Token
+    r"xoxb-[0-9]{11}-[0-9]{11}-[a-zA-Z0-9]{24}" # Slack Token
+]
+
+def pre_tool_use_hook(command):
+    """
+    事前拦截：检查命令是否包含危险操作。
+    """
+    for pattern in DANGEROUS_COMMANDS:
+        if re.search(pattern, command):
+            print(f"[Security Audit] BLOCKED: Command matches dangerous pattern '{pattern}'")
+            return False
+    return True
+
+def post_tool_use_hook(output):
+    """
+    事后清洗：脱敏输出中的敏感信息。
+    """
+    cleaned_output = output
+    for pattern in SENSITIVE_PATTERNS:
+        cleaned_output = re.sub(pattern, "[REDACTED]", cleaned_output)
+    return cleaned_output
+
+if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print("Usage: python3 security_audit.py <hook_type> <input>")
+        sys.exit(1)
+        
+    hook_type = sys.argv[1]
+    input_data = sys.argv[2]
+    
+    if hook_type == "pre":
+        if pre_tool_use_hook(input_data):
+            print("[Security Audit] PASSED")
+            sys.exit(0)
+        else:
+            sys.exit(1)
+    elif hook_type == "post":
+        cleaned = post_tool_use_hook(input_data)
+        print(cleaned)
+        sys.exit(0)
+    else:
+        print("Invalid hook type. Use 'pre' or 'post'.")
+        sys.exit(1)
 ```
 
-### 步骤 2：角色漂移检测（Role Drift Detection）
-对照每个 Agent 的 `SOUL.md`，检查其操作日志是否存在越界行为：
+## 4. 协作与触发
 
-| 检测项目 | 违规示例 | 严重程度 |
-|---|---|---|
-| CoS 直接写代码 | CoS 调用了 `file write` 写入 `.js` 文件 | 高 |
-| Builder 修改架构 | Builder 修改了 `openclaw.json` 主配置 | 高 |
-| Researcher 写入生产文件 | Researcher 修改了 `deploy.sh` | 中 |
-| KO 删除他人工作成果 | KO 删除了 `workspace/builder/` 目录 | 高 |
-
-### 步骤 3：技能安全审查（Skill Security Review）
-检查 `skills/` 目录中新增的 `SKILL.md` 文件：
-- 是否包含危险命令（如 `rm -rf /`、`chmod 777`）。
-- 是否包含越权操作（如直接修改其他 Agent 的 `SOUL.md`）。
-- 是否包含硬编码的 API Keys 或密码。
-
-### 步骤 4：生成审计报告（Audit Report）
-将审计结果写入 `workspace/ops/audit-YYYY-MM-DD.md`，格式如下：
-```markdown
-# 安全审计报告 - YYYY-MM-DD
-
-## 总体状态
-- 审计周期：YYYY-MM-DD 至 YYYY-MM-DD
-- 发现问题：X 个（高危：X，中危：X，低危：X）
-
-## 高危问题
-1. [Agent 名称] 在 [时间] 执行了 [越权操作]，违反了 SOUL.md 中的 [条款]。
-
-## 建议措施
-1. [具体的修复建议]
-```
-
-### 步骤 5：上报与修复（Report & Fix）
-将审计报告提交给 CoS，由 CoS 决定是否需要修复以及如何修复。**Ops 不得自行修复高危问题，必须等待 CoS 的明确授权。**
-
-## 安全原则
-- **Fail-closed**：所有安全相关的默认值都是最保守的。工具默认不可并行、默认非只读、权限默认需要确认。
-- **操作全链路审计**：危险操作强制弹窗，隐身模式（Undercover）行为监控。
-- **工具即能力边界**：Agent 能做什么完全由工具集决定，没有任何后门。
-- **审计而非执法**：Ops 的职责是发现问题并上报，而不是自行处置。
-
-## 变更日志
-- 2026-04-15 v4.0：基于 Claude Code Fail-closed 安全哲学深度重写，增加角色漂移检测表、技能安全审查流程和审计报告模板。
+- **触发者**：Ops（运维审计员）或底层执行引擎（自动触发）。
+- **前置条件**：任何工具调用（Pre/Post）或定期的系统审计。
+- **输出结果**：拦截危险操作，脱敏敏感信息，生成审计报告。
