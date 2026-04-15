@@ -1,0 +1,148 @@
+{
+  "version": "6.2.0",
+  "name": "OPT Lobster Legion v6.2",
+  "description": "Super Agent Infrastructure based on Claude Code, Hermes, and OpenHarness",
+  "engine": {
+    "type": "taor",
+    "maxRetries": 3,
+    "timeoutMs": 300000,
+    "coordinator": {
+      "enabled": true,
+      "mode": "swarm",
+      "maxSubAgents": 3
+    }
+  },
+  "agents": {
+    "cos": {
+      "role": "Chief of Staff / Product Manager",
+      "model": "claude-3-7-sonnet-20250219",
+      "soul": "agents/cos/SOUL.md",
+      "channel": "#hq"
+    },
+    "cto": {
+      "role": "Chief Technology Officer",
+      "model": "claude-3-7-sonnet-20250219",
+      "soul": "agents/cto/SOUL.md",
+      "channel": "#architecture"
+    },
+    "fe": {
+      "role": "Front-End Engineer",
+      "model": "claude-3-5-sonnet-20241022",
+      "soul": "agents/fe/SOUL.md",
+      "channel": "#frontend"
+    },
+    "be": {
+      "role": "Back-End Engineer",
+      "model": "claude-3-5-sonnet-20241022",
+      "soul": "agents/be/SOUL.md",
+      "channel": "#backend"
+    },
+    "qa": {
+      "role": "Quality Assurance Engineer",
+      "model": "claude-3-5-haiku-20241022",
+      "soul": "agents/qa/SOUL.md",
+      "channel": "#testing"
+    },
+    "researcher": {
+      "role": "Market & Data Researcher",
+      "model": "claude-3-5-sonnet-20241022",
+      "soul": "agents/researcher/SOUL.md",
+      "channel": "#research"
+    },
+    "ko": {
+      "role": "Knowledge & Evolution Officer",
+      "model": "claude-3-7-sonnet-20250219",
+      "soul": "agents/ko/SOUL.md",
+      "channel": "#knowledge"
+    },
+    "ops": {
+      "role": "DevOps & Security Auditor",
+      "model": "claude-3-5-sonnet-20241022",
+      "soul": "agents/ops/SOUL.md",
+      "channel": "#ops"
+    }
+  },
+  "memory": {
+    "session": {
+      "autoCompact": true,
+      "compactThreshold": 0.8,
+      "preserveHead": 2,
+      "preserveTail": 5,
+      "compactor": {
+        "enabled": true,
+        "engine": "engine/memory_compactor.py",
+        "stateFile": "memory/session/compact_state.json",
+        "maxStateSize": 2048
+      }
+    },
+    "global": {
+      "path": "memory/global/"
+    },
+    "profiles": {
+      "dialecticalModeling": true,
+      "path": "memory/profiles/"
+    },
+    "trajectories": {
+      "enabled": true,
+      "format": "jsonl",
+      "path": "memory/trajectories/"
+    },
+    "driftCaveat": {
+      "enabled": true,
+      "warnAfterHours": 24,
+      "cautionAfterDays": 7,
+      "archiveAfterDays": 30,
+      "scanDirs": ["memory/global", "memory/profiles", "memory/session"]
+    }
+  },
+  "kairos": {
+    "enabled": true,
+    "daemon": "engine/kairos_daemon.py",
+    "logDir": "memory/kairos_logs",
+    "logLevels": ["DECISION", "STATUS", "ESCALATION", "MILESTONE", "NOTE"],
+    "dailySummary": {
+      "enabled": true,
+      "triggerTime": "23:55",
+      "outputPath": "memory/kairos_logs/summaries/"
+    }
+  },
+  "skills": {
+    "corePath": "skills/core/",
+    "evolvedPath": "skills/evolved/",
+    "autoEvolution": true
+  },
+  "hooks": {
+    "preToolUse": "hooks/pre_tool_use/",
+    "postToolUse": "hooks/post_tool_use/"
+  },
+  "permissions": {
+    "mode": "plan",
+    "defaultAction": "ask",
+    "blockedCommands": ["rm -rf /", "mkfs", "dd"],
+    "allowedPaths": ["/home/ubuntu/workspace"]
+  },
+  "mcp": {
+    "servers": {
+      "github": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-github"]
+      },
+      "postgres": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://localhost/mydb"]
+      }
+    }
+  },
+  "scheduler": {
+    "autoDream": {
+      "cron": "0 2 * * 1",
+      "script": "engine/auto_dream.py",
+      "description": "每周一凌晨 2:00 执行 Auto Dream（含 Memory Drift Caveat 扫描）"
+    },
+    "kairosDaily": {
+      "cron": "55 23 * * *",
+      "script": "engine/kairos_daemon.py summary",
+      "description": "每天 23:55 生成当日 KAIROS 日志摘要"
+    }
+  }
+}
